@@ -50,47 +50,33 @@ Future<void> main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final lang = context.watch<LanguageService>();
-    final theme = context.watch<ThemeService>();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Dr Mohamed clinic',
-      themeMode: theme.themeMode,
+      title: 'Dr Mohamed Clinic',
       theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.teal,
-        brightness: Brightness.light,
+        primarySwatch: Colors.teal,
       ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.teal,
-        brightness: Brightness.dark,
+      home: const TestScreen(),
+    );
+  }
+}
+
+class TestScreen extends StatelessWidget {
+  const TestScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Test Home')),
+      body: const Center(
+        child: Text(
+          'التطبيق شغال ✅',
+          style: TextStyle(fontSize: 22),
+        ),
       ),
-      locale: lang.isArabic ? const Locale('ar') : const Locale('en'),
-      supportedLocales: const [Locale('ar'), Locale('en')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      routes: {
-        '/': (_) => const SplashScreen(),
-        '/welcome': (_) => const WelcomeScreen(),
-        '/login': (_) => const LoginScreen(),
-        '/home': (ctx) {
-          final phone =
-              ModalRoute.of(ctx)!.settings.arguments as String? ?? '';
-          return HomeScreen(phone: phone);
-        },
-        '/adminLogin': (_) => const AdminLoginScreen(),
-        '/adminHome': (ctx) {
-          final role =
-              ModalRoute.of(ctx)!.settings.arguments as AdminRole?;
-          return AdminHomeScreen(role: role);
-        },
-      },
     );
   }
 }
