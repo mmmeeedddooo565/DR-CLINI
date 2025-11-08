@@ -4,11 +4,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
-        android:label="Dr Mohamed clinic"
-        android:usesCleartextTraffic="true">
-
+    android:label="Dr Mohamed Clinic"
+    android:icon="@mipmap/ic_launcher"
+    android:name="${applicationName}">
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"
