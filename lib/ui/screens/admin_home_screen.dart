@@ -85,16 +85,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
 
   Future<void> _changeSecretaryPassword() async {
-    if (!isAdmin) return; // أمان إضافي
-
+    if (!isAdmin) return;
     final isAr = context.read<LanguageService>().isArabic;
     final controller = TextEditingController();
 
     final newPass = await showDialog<String>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return Directionality(
-          textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
+          textDirection:
+              isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
           child: AlertDialog(
             title: Text(
               isAr
@@ -112,12 +112,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(null),
+                onPressed: () =>
+                    Navigator.of(dialogContext).pop(null),
                 child: Text(isAr ? 'إلغاء' : 'Cancel'),
               ),
               TextButton(
-                onPressed: () =>
-                    Navigator.of(context).pop(controller.text.trim()),
+                onPressed: () => Navigator.of(dialogContext)
+                    .pop(controller.text.trim()),
                 child: Text(isAr ? 'حفظ' : 'Save'),
               ),
             ],
@@ -155,18 +156,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.people),
-              tooltip: isAr ? 'المستخدمون' : 'Users',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AdminUsersScreen(),
-                  ),
-                );
-              },
-            ),
-            IconButton(
               icon: const Icon(Icons.list_alt),
               tooltip: isAr ? 'الحجوزات' : 'Bookings',
               onPressed: () {
@@ -185,7 +174,20 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const AdminFollowupsScreen(),
+                    builder: (_) =>
+                        const AdminFollowupsScreen(),
+                  ),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.people),
+              tooltip: isAr ? 'المستخدمون' : 'Users',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AdminUsersScreen(),
                   ),
                 );
               },
@@ -198,7 +200,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const AdminSettingsScreen(),
+                      builder: (_) =>
+                          const AdminSettingsScreen(),
                     ),
                   );
                 },
@@ -213,13 +216,17 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: _todaySummary(),
                 builder: (context, snap) {
-                  if (!snap.hasData) {
+                  if (snap.connectionState ==
+                      ConnectionState.waiting) {
                     return const Card(
                       child: Padding(
                         padding: EdgeInsets.all(12),
                         child: LinearProgressIndicator(),
                       ),
                     );
+                  }
+                  if (!snap.hasData || snap.hasError) {
+                    return const SizedBox.shrink();
                   }
                   final slots = snap.data!;
                   final total = slots.fold<int>(
@@ -230,7 +237,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
                         children: [
                           Text(
                             isAr
@@ -272,7 +280,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
               const SizedBox(height: 16),
 
-              // زر تغيير كلمة مرور السكرتيرة - فقط للأدمن
+              // زر تغيير كلمة مرور السكرتيرة - للأدمن فقط
               if (isAdmin) ...[
                 FilledButton.icon(
                   onPressed: _changeSecretaryPassword,
@@ -286,7 +294,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 const SizedBox(height: 24),
               ],
 
-              // تعيين كلمة مرور للمستخدم
+              // تعيين كلمة مرور لمستخدم
               Text(
                 isAr
                     ? 'تعيين كلمة مرور لمستخدم'
@@ -316,7 +324,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               FilledButton(
                 onPressed: _setPassword,
                 child: Text(
-                  isAr ? 'حفظ كلمة المرور' : 'Save password',
+                  isAr
+                      ? 'حفظ كلمة المرور'
+                      : 'Save password',
                 ),
               ),
 
@@ -329,8 +339,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     : 'Broadcast message',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                  fontSize: 16),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -346,9 +355,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               FilledButton.icon(
                 onPressed: _postBroadcast,
                 icon: const Icon(Icons.campaign),
-                label: Text(
-                  isAr ? 'إرسال' : 'Send',
-                ),
+                label: Text(isAr ? 'إرسال' : 'Send'),
               ),
             ],
           ),
