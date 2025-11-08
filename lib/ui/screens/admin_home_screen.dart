@@ -25,6 +25,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   final _broadcast = TextEditingController();
 
   bool get isSecretary => _role == AdminRole.secretary;
+  bool get isAdmin => _role == AdminRole.admin;
 
   @override
   void initState() {
@@ -39,9 +40,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     if (phone.isEmpty || pass.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isAr
-              ? 'أدخل رقم الموبايل وكلمة المرور'
-              : 'Enter phone & password'),
+          content: Text(
+            isAr
+                ? 'أدخل رقم الموبايل وكلمة المرور'
+                : 'Enter phone & password',
+          ),
         ),
       );
       return;
@@ -50,9 +53,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(isAr
-            ? 'تم حفظ كلمة المرور للمستخدم'
-            : 'Password saved for user'),
+        content: Text(
+          isAr
+              ? 'تم حفظ كلمة المرور للمستخدم'
+              : 'Password saved for user',
+        ),
       ),
     );
   }
@@ -66,8 +71,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content:
-            Text(isAr ? 'تم إرسال الإشعار' : 'Broadcast sent'),
+        content: Text(
+          isAr ? 'تم إرسال الإشعار' : 'Broadcast sent',
+        ),
       ),
     );
   }
@@ -76,6 +82,63 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     final now = DateTime.now();
     final day = DateTime(now.year, now.month, now.day);
     return await AppointmentService.buildSlotsForDay(day);
+  }
+
+  Future<void> _changeSecretaryPassword() async {
+    if (!isAdmin) return; // أمان إضافي
+
+    final isAr = context.read<LanguageService>().isArabic;
+    final controller = TextEditingController();
+
+    final newPass = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return Directionality(
+          textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
+          child: AlertDialog(
+            title: Text(
+              isAr
+                  ? 'تغيير كلمة مرور السكرتيرة'
+                  : 'Change secretary password',
+            ),
+            content: TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: isAr
+                    ? 'أدخل كلمة المرور الجديدة'
+                    : 'Enter new password',
+              ),
+              obscureText: true,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(null),
+                child: Text(isAr ? 'إلغاء' : 'Cancel'),
+              ),
+              TextButton(
+                onPressed: () =>
+                    Navigator.of(context).pop(controller.text.trim()),
+                child: Text(isAr ? 'حفظ' : 'Save'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (newPass != null && newPass.isNotEmpty) {
+      await AuthService.setSecretaryPassword(newPass);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isAr
+                ? 'تم تغيير كلمة مرور السكرتيرة بنجاح ✅'
+                : 'Secretary password updated ✅',
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -87,12 +150,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         appBar: AppBar(
           title: Text(
             isSecretary
-                ? (isAr
-                    ? 'لوحة السكرتيرة'
-                    : 'Secretary Dashboard')
-                : (isAr
-                    ? 'لوحة الأدمن'
-                    : 'Admin Dashboard'),
+                ? (isAr ? 'لوحة السكرتيرة' : 'Secretary Dashboard')
+                : (isAr ? 'لوحة الأدمن' : 'Admin Dashboard'),
           ),
           actions: [
             IconButton(
@@ -150,6 +209,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           padding: const EdgeInsets.all(16),
           child: ListView(
             children: [
+              // موجز حجوزات اليوم
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: _todaySummary(),
                 builder: (context, snap) {
@@ -162,8 +222,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     );
                   }
                   final slots = snap.data!;
-                  final total =
-                      slots.fold<int>(0, (p, e) => p + (e['used'] as int));
+                  final total = slots.fold<int>(
+                    0,
+                    (p, e) => p + (e['used'] as int),
+                  );
                   return Card(
                     child: Padding(
                       padding: const EdgeInsets.all(12),
@@ -187,67 +249,88 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                 total.toString(),
                           ),
                           const SizedBox(height: 4),
-                          ...slots.map((s) => Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(s['time'] as String),
-                                  Text(
-                                    isAr
-                                        ? 'محجوز: ${s['used']}/${s['capacity']}'
-                                        : 'Booked: ${s['used']}/${s['capacity']}',
-                                  ),
-                                ],
-                              )),
+                          ...slots.map(
+                            (s) => Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(s['time'] as String),
+                                Text(
+                                  isAr
+                                      ? 'محجوز: ${s['used']}/${s['capacity']}'
+                                      : 'Booked: ${s['used']}/${s['capacity']}',
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   );
                 },
               ),
+
               const SizedBox(height: 16),
+
+              // زر تغيير كلمة مرور السكرتيرة - فقط للأدمن
+              if (isAdmin) ...[
+                FilledButton.icon(
+                  onPressed: _changeSecretaryPassword,
+                  icon: const Icon(Icons.lock_reset),
+                  label: Text(
+                    isAr
+                        ? 'تغيير كلمة مرور السكرتيرة'
+                        : 'Change secretary password',
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              // تعيين كلمة مرور للمستخدم
               Text(
                 isAr
                     ? 'تعيين كلمة مرور لمستخدم'
                     : 'Set user password',
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _patientPhone,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
-                  labelText: isAr
-                      ? 'رقم موبايل المستخدم'
-                      : 'User phone',
+                  labelText:
+                      isAr ? 'رقم موبايل المستخدم' : 'User phone',
                 ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: _manualPass,
                 decoration: InputDecoration(
-                  labelText: isAr
-                      ? 'كلمة المرور'
-                      : 'Password',
+                  labelText: isAr ? 'كلمة المرور' : 'Password',
                 ),
               ),
               const SizedBox(height: 8),
               FilledButton(
                 onPressed: _setPassword,
                 child: Text(
-                  isAr
-                      ? 'حفظ كلمة المرور'
-                      : 'Save password',
+                  isAr ? 'حفظ كلمة المرور' : 'Save password',
                 ),
               ),
+
               const SizedBox(height: 24),
+
+              // إشعار عام
               Text(
                 isAr
                     ? 'إشعار عام لكل المستخدمين'
                     : 'Broadcast message',
                 style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
