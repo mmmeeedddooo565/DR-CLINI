@@ -19,18 +19,28 @@ class FirestoreService {
   /// الكود القديم أحيانًا كان يبعت name، فخليناه اختياري.
   static Future<void> upsertUser({
   required String phone,
-  required String password,
+  String? password,
   String? name,
   int? age,
 }) async {
-  await usersCol.doc(phone).set({
+  final data = <String, dynamic>{
     'phone': phone,
-    'password': password,
-    if (name != null && name.isNotEmpty) 'name': name,
-    if (age != null) 'age': age,
     'updatedAt': FieldValue.serverTimestamp(),
-  }, SetOptions(merge: true));
+  };
+
+  if (password != null && password.isNotEmpty) {
+    data['password'] = password;
+  }
+  if (name != null && name.isNotEmpty) {
+    data['name'] = name;
+  }
+  if (age != null) {
+    data['age'] = age;
+  }
+
+  await usersCol.doc(phone).set(data, SetOptions(merge: true));
 }
+
 
   /// جلب بيانات مستخدم (لتسجيل الدخول)
   static Future<Map<String, dynamic>?> getUser(String phone) async {
