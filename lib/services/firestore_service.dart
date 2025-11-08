@@ -1,82 +1,61 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../core/firebase_paths.dart';
 
 class FirestoreService {
-  static final _db = FirebaseFirestore.instance;
+  static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // USERS
-  static CollectionReference<Map<String, dynamic>> get usersCol =>
-      _db.collection(FbCollections.users);
-
+  /// إنشاء / تحديث مستخدم
   static Future<void> upsertUser({
     required String phone,
-    String? password,
-    String? name,
-    int? age,
+    required String password,
   }) async {
-    await usersCol.doc(phone).set({
+    await _db.collection('users').doc(phone).set({
       'phone': phone,
-      if (password != null && password.isNotEmpty) 'password': password,
-      if (name != null) 'name': name,
-      if (age != null) 'age': age,
+      'password': password,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
+  /// جلب بيانات مستخدم
   static Future<Map<String, dynamic>?> getUser(String phone) async {
-    final doc = await usersCol.doc(phone).get();
+    final doc = await _db.collection('users').doc(phone).get();
     if (!doc.exists) return null;
     return doc.data();
   }
 
-  static Future<void> deleteUser(String phone) async {
-    await usersCol.doc(phone).delete();
-  }
-
-  static Stream<QuerySnapshot<Map<String, dynamic>>> usersStream() {
-    return usersCol.orderBy('phone').snapshots();
-  }
-
-  // BROADCASTS
-  static CollectionReference<Map<String, dynamic>> get broadcastsCol =>
-      _db.collection(FbCollections.broadcasts);
-
-  static Future<void> addBroadcast(String msg) async {
-    await broadcastsCol.add({
-      'msg': msg,
-      'ts': FieldValue.serverTimestamp(),
+  /// إضافة إشعار عام
+  static Future<void> addBroadcast(String message) async {
+    await _db.collection('broadcasts').add({
+      'message': message,
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  static Future<List<Map<String, dynamic>>> getBroadcasts() async {
-    final snap =
-        await broadcastsCol.orderBy('ts', descending: true).get();
-    return snap.docs
-        .map((d) => {
-              'id': d.id,
-              'msg': d.data()['msg'] ?? '',
-              'ts': (d.data()['ts'] ?? '').toString(),
-            })
-        .toList();
+  /// ستريم المستخدمين (للشاشة الإدارية)
+  static Stream<QuerySnapshot<Map<String, dynamic>>> usersStream() {
+    return _db
+        .collection('users')
+        .orderBy('phone', descending: false)
+        .snapshots();
   }
 
-  // APPOINTMENTS
-  static CollectionReference<Map<String, dynamic>> get appointmentsCol =>
-      _db.collection(FbCollections.appointments);
-
-  static Stream<QuerySnapshot<Map<String, dynamic>>> appointmentsStream() {
-    return appointmentsCol.orderBy('dateTime').snapshots();
+  /// ستريم الحجوزات
+  static Stream<QuerySnapshot<Map<String, dynamic>>> bookingsStream() {
+    return _db
+        .collection('appointments')
+        .orderBy('date', descending: false)
+        .snapshots();
   }
 
-  // FOLLOWUPS
-  static CollectionReference<Map<String, dynamic>> get followupsCol =>
-      _db.collection(FbCollections.followups);
-
+  /// ستريم المتابعات
   static Stream<QuerySnapshot<Map<String, dynamic>>> followupsStream() {
-    return followupsCol.orderBy('dt').snapshots();
+    return _db
+        .collection('followups')
+        .orderBy('date', descending: false)
+        .snapshots();
   }
 
-  // SETTINGS
-  static CollectionReference<Map<String, dynamic>> get settingsCol =>
-      _db.collection(FbCollections.settings);
+  /// حذف مستخدم
+  static Future<void> deleteUser(String phone) async {
+    await _db.collection('users').doc(phone).delete();
+  }
 }
