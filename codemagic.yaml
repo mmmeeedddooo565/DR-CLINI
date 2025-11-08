@@ -15,43 +15,49 @@ workflows:
 
       - name: Copy clinic app code into clean project
         script: |
-          echo "Replacing lib and pubspec in clean project"
+          echo "Copying lib, pubspec, assets into clean flutter project"
           rm -rf /tmp/app/lib
           cp -R lib /tmp/app/lib
 
           cp pubspec.yaml /tmp/app/pubspec.yaml || true
 
           if [ -d assets ]; then
+            rm -rf /tmp/app/assets
             cp -R assets /tmp/app/assets
           fi
 
-          # لو عندك google-services.json في ريبوك الحالي
+          # لو google-services.json موجود في الريبو الأصلي
           if [ -f android/app/google-services.json ]; then
             cp android/app/google-services.json /tmp/app/android/app/google-services.json
           fi
 
-      - name: Set applicationId & package to com.dr.mohamedesmail.clinic
+      - name: Configure Android id, namespace, label & MainActivity
         script: |
           cd /tmp/app
 
-          # تعديل applicationId في build.gradle
+          echo "Setting applicationId and namespace"
           sed -i.bak 's/applicationId ".*"/applicationId "com.dr.mohamedesmail.clinic"/' android/app/build.gradle || true
+          sed -i.bak 's/namespace ".*"/namespace "com.dr.mohamedesmail.clinic"/' android/app/build.gradle || true
 
-          # تعديل package في AndroidManifest
+          echo "Updating AndroidManifest package and label"
           sed -i.bak 's/package="[^"]*"/package="com.dr.mohamedesmail.clinic"/' android/app/src/main/AndroidManifest.xml || true
+          sed -i.bak 's/android:label="[^"]*"/android:label="Dr Mohamed clinic"/' android/app/src/main/AndroidManifest.xml || true
 
-          # إنشاء مسار الباكدج الصحيح لـ MainActivity
-          mkdir -p android/app/src/main/kotlin/com/dr/mohamedesmail/clinic
-
-          # نقل MainActivity الموجود لأي مسار صحيح جديد
-          FOUND_MAIN=$(find android/app/src/main/kotlin -name "MainActivity.kt" | head -n 1 || true)
-          if [ -n "$FOUND_MAIN" ]; then
-            mv "$FOUND_MAIN" android/app/src/main/kotlin/com/dr/mohamedesmail/clinic/MainActivity.kt
+          echo "Fixing MainActivity for Kotlin"
+          if [ -f android/app/src/main/kotlin/com/example/dr_mohamed_clinic/MainActivity.kt ]; then
+            mkdir -p android/app/src/main/kotlin/com/dr/mohamedesmail/clinic
+            mv android/app/src/main/kotlin/com/example/dr_mohamed_clinic/MainActivity.kt android/app/src/main/kotlin/com/dr/mohamedesmail/clinic/MainActivity.kt
           fi
 
-          # تعديل الباكدج داخل MainActivity
           if [ -f android/app/src/main/kotlin/com/dr/mohamedesmail/clinic/MainActivity.kt ]; then
             sed -i.bak 's/^package .*/package com.dr.mohamedesmail.clinic/' android/app/src/main/kotlin/com/dr/mohamedesmail/clinic/MainActivity.kt
+          fi
+
+          echo "Fixing MainActivity for Java (if exists)"
+          if [ -f android/app/src/main/java/com/example/dr_mohamed_clinic/MainActivity.java ]; then
+            mkdir -p android/app/src/main/java/com/dr/mohamedesmail/clinic
+            mv android/app/src/main/java/com/example/dr_mohamed_clinic/MainActivity.java android/app/src/main/java/com/dr/mohamedesmail/clinic/MainActivity.java
+            sed -i.bak 's/^package .*/package com.dr.mohamedesmail.clinic;/' android/app/src/main/java/com/dr/mohamedesmail/clinic/MainActivity.java
           fi
 
       - name: Flutter pub get
