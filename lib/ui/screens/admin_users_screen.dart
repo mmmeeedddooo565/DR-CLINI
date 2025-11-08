@@ -1,8 +1,5 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:provider/provider.dart';
-import '../../main.dart';
 import '../../services/firestore_service.dart';
 
 class AdminUsersScreen extends StatelessWidget {
@@ -10,49 +7,50 @@ class AdminUsersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAr = context.watch<LanguageService>().isArabic;
-    return Directionality(
-      textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(isAr ? 'المستخدمون' : 'Users'),
-        ),
-        body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: FirestoreService.usersStream(),
-          builder: (context, snap) {
-            if (!snap.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final docs = snap.data!.docs;
-            if (docs.isEmpty) {
-              return Center(
-                child: Text(isAr
-                    ? 'لا يوجد مستخدمون بعد'
-                    : 'No users yet'),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('المستخدمون'),
+      ),
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirestoreService.usersStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('لا يوجد مستخدمون بعد'));
+          }
+
+          final docs = snapshot.data!.docs;
+
+          return ListView.separated(
+            itemCount: docs.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final data = docs[index].data();
+              final phone = data['phone']?.toString() ?? '';
+              final name = data['name']?.toString() ?? 'بدون اسم';
+              final pass = data['password']?.toString() ?? '';
+
+              return ListTile(
+                title: Text(name),
+                subtitle: Text('موبايل: $phone\nباسورد: $pass'),
+                isThreeLine: true,
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () async {
+                    await FirestoreService.deleteUser(phone);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('تم حذف المستخدم'),
+                      ),
+                    );
+                  },
+                ),
               );
-            }
-            return ListView.separated(
-              itemCount: docs.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, i) {
-                final u = docs[i].data();
-                final phone = u['phone'] ?? '';
-                final name = u['name'] ?? '';
-                final pass = u['password'] ?? '';
-                final age = u['age']?.toString() ?? '';
-                return ListTile(
-                  leading: const Icon(Icons.person),
-                  title: Text('$phone${name != '' ? ' - $name' : ''}'),
-                  subtitle: Text(
-                    (isAr ? 'كلمة المرور: ' : 'Password: ') +
-                        (pass.toString()),
-                  ),
-                  trailing: Text(age),
-                );
-              },
-            );
-          },
-        ),
+            },
+          );
+        },
       ),
     );
   }
