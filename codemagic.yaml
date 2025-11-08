@@ -6,28 +6,76 @@ workflows:
 
     environment:
       flutter: stable
-      xcode: 15.4
-      cocoapods: default
 
     scripts:
+      - name: Create clean Flutter project
+        script: |
+          echo "Creating clean Flutter project in /tmp/app"
+          flutter create -t app /tmp/app
+
+      - name: Copy clinic app code into clean project
+        script: |
+          echo "Replacing lib and pubspec in clean project"
+          rm -rf /tmp/app/lib
+          cp -R lib /tmp/app/lib
+
+          cp pubspec.yaml /tmp/app/pubspec.yaml || true
+
+          if [ -d assets ]; then
+            cp -R assets /tmp/app/assets
+          fi
+
+          # لو عندك google-services.json في ريبوك الحالي
+          if [ -f android/app/google-services.json ]; then
+            cp android/app/google-services.json /tmp/app/android/app/google-services.json
+          fi
+
+      - name: Set applicationId & package to com.dr.mohamedesmail.clinic
+        script: |
+          cd /tmp/app
+
+          # تعديل applicationId في build.gradle
+          sed -i.bak 's/applicationId ".*"/applicationId "com.dr.mohamedesmail.clinic"/' android/app/build.gradle || true
+
+          # تعديل package في AndroidManifest
+          sed -i.bak 's/package="[^"]*"/package="com.dr.mohamedesmail.clinic"/' android/app/src/main/AndroidManifest.xml || true
+
+          # إنشاء مسار الباكدج الصحيح لـ MainActivity
+          mkdir -p android/app/src/main/kotlin/com/dr/mohamedesmail/clinic
+
+          # نقل MainActivity الموجود لأي مسار صحيح جديد
+          FOUND_MAIN=$(find android/app/src/main/kotlin -name "MainActivity.kt" | head -n 1 || true)
+          if [ -n "$FOUND_MAIN" ]; then
+            mv "$FOUND_MAIN" android/app/src/main/kotlin/com/dr/mohamedesmail/clinic/MainActivity.kt
+          fi
+
+          # تعديل الباكدج داخل MainActivity
+          if [ -f android/app/src/main/kotlin/com/dr/mohamedesmail/clinic/MainActivity.kt ]; then
+            sed -i.bak 's/^package .*/package com.dr.mohamedesmail.clinic/' android/app/src/main/kotlin/com/dr/mohamedesmail/clinic/MainActivity.kt
+          fi
+
       - name: Flutter pub get
         script: |
+          cd /tmp/app
           flutter pub get
 
-      - name: Build Android App Bundle (release)
+      - name: Build Android appbundle (release)
         script: |
+          cd /tmp/app
           flutter build appbundle --release
 
-      # لو حابب كمان APK (اختياري)
-      - name: Build Android APK (release)
+      - name: Build Android apk (release)
         script: |
+          cd /tmp/app
           flutter build apk --release
 
-    artifacts:
-      - build/app/outputs/bundle/release/app-release.aab
-      - build/app/outputs/flutter-apk/app-release.apk
+      - name: Copy build artifacts
+        script: |
+          cd /tmp/app
+          ls -R build || true
+          cp build/app/outputs/bundle/release/app-release.aab $CM_BUILD_DIR/app-release.aab || true
+          cp build/app/outputs/flutter-apk/app-release.apk $CM_BUILD_DIR/app-release.apk || true
 
-    cache:
-      cache_paths:
-        - $FLUTTER_ROOT/.pub-cache
-        - build/
+    artifacts:
+      - app-release.aab
+      - app-release.apk
