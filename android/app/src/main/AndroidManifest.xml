@@ -29,6 +29,9 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-    </application>
+    <application
+    android:label="Dr Mohamed Clinic"
+    android:icon="@mipmap/ic_launcher"
+
 
 </manifest>
