@@ -3,59 +3,73 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class FirestoreService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  // Collections جاهزة لإعادة استخدام الكود القديم
+  static CollectionReference<Map<String, dynamic>> get usersCol =>
+      _db.collection('users');
+  static CollectionReference<Map<String, dynamic>> get appointmentsCol =>
+      _db.collection('appointments');
+  static CollectionReference<Map<String, dynamic>> get followupsCol =>
+      _db.collection('followups');
+  static CollectionReference<Map<String, dynamic>> get broadcastsCol =>
+      _db.collection('broadcasts');
+  static CollectionReference<Map<String, dynamic>> get settingsCol =>
+      _db.collection('settings');
+
   /// إنشاء / تحديث مستخدم
+  /// الكود القديم أحيانًا كان يبعت name، فخليناه اختياري.
   static Future<void> upsertUser({
     required String phone,
     required String password,
+    String? name,
   }) async {
-    await _db.collection('users').doc(phone).set({
+    await usersCol.doc(phone).set({
       'phone': phone,
       'password': password,
+      if (name != null && name.isNotEmpty) 'name': name,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
-  /// جلب بيانات مستخدم
+  /// جلب بيانات مستخدم (لتسجيل الدخول)
   static Future<Map<String, dynamic>?> getUser(String phone) async {
-    final doc = await _db.collection('users').doc(phone).get();
+    final doc = await usersCol.doc(phone).get();
     if (!doc.exists) return null;
     return doc.data();
   }
 
   /// إضافة إشعار عام
   static Future<void> addBroadcast(String message) async {
-    await _db.collection('broadcasts').add({
+    await broadcastsCol.add({
       'message': message,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  /// ستريم المستخدمين (للشاشة الإدارية)
+  /// جلب الإشعارات (للشاشة notifications_screen)
+  static Future<List<Map<String, dynamic>>> getBroadcasts() async {
+    final snap = await broadcastsCol
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snap.docs.map((d) => d.data()).toList();
+  }
+
+  /// ستريم المستخدمين (AdminUsersScreen)
   static Stream<QuerySnapshot<Map<String, dynamic>>> usersStream() {
-    return _db
-        .collection('users')
-        .orderBy('phone', descending: false)
-        .snapshots();
+    return usersCol.orderBy('phone').snapshots();
   }
 
-  /// ستريم الحجوزات
+  /// ستريم الحجوزات (AdminBookingsScreen)
   static Stream<QuerySnapshot<Map<String, dynamic>>> bookingsStream() {
-    return _db
-        .collection('appointments')
-        .orderBy('date', descending: false)
-        .snapshots();
+    return appointmentsCol.orderBy('date').snapshots();
   }
 
-  /// ستريم المتابعات
+  /// ستريم المتابعات (AdminFollowupsScreen)
   static Stream<QuerySnapshot<Map<String, dynamic>>> followupsStream() {
-    return _db
-        .collection('followups')
-        .orderBy('date', descending: false)
-        .snapshots();
+    return followupsCol.orderBy('date').snapshots();
   }
 
   /// حذف مستخدم
   static Future<void> deleteUser(String phone) async {
-    await _db.collection('users').doc(phone).delete();
+    await usersCol.doc(phone).delete();
   }
 }
