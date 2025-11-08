@@ -1,7 +1,4 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../main.dart';
 import '../../services/auth_service.dart';
 import 'admin_home_screen.dart';
 
@@ -13,27 +10,27 @@ class AdminLoginScreen extends StatefulWidget {
 }
 
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
-  final _pass = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _pass = TextEditingController();
+  bool _loading = false;
 
-  Future<void> _login() async {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _loading = true);
+
     final role = await AuthService.loginAdmin(_pass.text.trim());
-    final isAr = context.read<LanguageService>().isArabic;
+
+    setState(() => _loading = false);
+
     if (role == null) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isAr
-              ? 'كلمة مرور غير صحيحة'
-              : 'Invalid admin password'),
-        ),
+        const SnackBar(content: Text('كلمة المرور غير صحيحة')),
       );
       return;
     }
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
+
+    Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => AdminHomeScreen(role: role),
       ),
@@ -42,37 +39,35 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAr = context.watch<LanguageService>().isArabic;
     return Directionality(
-      textDirection: isAr ? ui.TextDirection.rtl : ui.TextDirection.ltr,
+      textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar:
-            AppBar(title: Text(isAr ? 'دخول الأدمن' : 'Admin Login')),
+        appBar: AppBar(title: const Text('دخول الإدارة')),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Form(
             key: _formKey,
             child: Column(
               children: [
+                const SizedBox(height: 24),
                 TextFormField(
                   controller: _pass,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: isAr ? 'كلمة المرور' : 'Password',
+                  decoration: const InputDecoration(
+                    labelText: 'كلمة المرور',
+                    border: OutlineInputBorder(),
                   ),
+                  obscureText: true,
                   validator: (v) =>
-                      (v == null || v.isEmpty)
-                          ? (isAr
-                              ? 'أدخل كلمة المرور'
-                              : 'Enter password')
-                          : null,
+                      (v == null || v.isEmpty) ? 'أدخل كلمة المرور' : null,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _login,
-                    child: Text(isAr ? 'دخول' : 'Login'),
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : _submit,
+                    child: _loading
+                        ? const CircularProgressIndicator()
+                        : const Text('دخول'),
                   ),
                 ),
               ],
