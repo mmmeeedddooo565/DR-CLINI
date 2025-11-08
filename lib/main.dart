@@ -59,7 +59,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.teal,
       ),
-      home: const TestScreen(),
+      home: const LoginScreen(),
     );
   }
 }
